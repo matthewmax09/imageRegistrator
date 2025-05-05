@@ -30,6 +30,10 @@ void fftShift(std::vector<std::complex<double>> &img, const int &width, const in
 
 void phaseCorrelation(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2,cv::Mat& result_im)
 {
+    /* Inspired by (keeping links for future reference)
+    https://stackoverflow.com/questions/75750139/c-attemping-to-use-stdrotate-with-fftw-complex-data-yields-error-array-mu
+    https://stackoverflow.com/questions/9126157/phase-correlation-using-fftw
+    */
     cv::Size sz = result_im.size();
     int height = sz.height;
     int width = sz.width;
