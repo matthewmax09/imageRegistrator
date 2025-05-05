@@ -15,13 +15,17 @@ void getLogPolar(image)
 }
 */
 
-void fftShift(std::vector<std::complex<double>> &img)
+void fftShift(std::vector<std::complex<double>> &img, const int &width, const int &height, const bool forward = true)
 {
-    //for( i = 0, k = 0 ; i < height ; i++ ) {
-      //for( j = 0 ; j < width ; j++, k++ ) {
-          
-      //}
-    //}
+    /* Inspired by https://stackoverflow.com/questions/29226465/fftshift-c-implemetation-for-opencv */ 
+    // size of top-left quadrant
+    int cx = forward ? (width + 1) / 2 : width / 2;
+    int cy = forward ? (height + 1) / 2 : height / 2;
+
+    for(int i = 0, k = 0 ; i < cy ; i++ ) {
+        std::swap_ranges(img.begin()+i*width,img.begin()+i*width+cx, img.begin()+cx+cy*width+i*width);
+        std::swap_ranges(img.begin()+i*width+cx,img.begin()+width+i*width,img.begin()+cy*width+i*width);
+    }
 }
 
 void phaseCorrelation(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2,cv::Mat& result_im)
