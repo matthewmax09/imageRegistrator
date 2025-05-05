@@ -24,19 +24,20 @@ void fftShift(std::vector<std::complex<double>> &img)
     //}
 }
 
-void phaseCorrelation(cv::Mat& im1,cv::Mat& im2,cv::Mat& result_im)
+void phaseCorrelation(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2,cv::Mat& result_im)
 {
-    cv::Size sz = im1.size();
+    cv::Size sz = result_im.size();
     int height = sz.height;
     int width = sz.width;
     int fft_size = width*height;
+    int i;
     // VLOG(1) << cv::typeToString(view1.type()); //CV_32FC1
     
-    std::vector<std::complex<double>> img1(fft_size);
-    std::vector<std::complex<double>> img2(fft_size);
+    //std::vector<std::complex<double>> img1(fft_size);
+    //std::vector<std::complex<double>> img2(fft_size);
     std::vector<std::complex<double>> res(fft_size);
     
-    fftw_complex *shifted  = ( fftw_complex* )fftw_malloc( sizeof( fftw_complex ) * width * height );
+    //fftw_complex *shifted  = ( fftw_complex* )fftw_malloc( sizeof( fftw_complex ) * width * height );
 
     fftw_plan fft_img1 = fftw_plan_dft_2d( height ,width, reinterpret_cast<fftw_complex*>(img1.data()), 
                                                           reinterpret_cast<fftw_complex*>(img1.data()), FFTW_FORWARD,  FFTW_ESTIMATE );
@@ -44,21 +45,6 @@ void phaseCorrelation(cv::Mat& im1,cv::Mat& im2,cv::Mat& result_im)
                                                           reinterpret_cast<fftw_complex*>(img2.data()), FFTW_FORWARD,  FFTW_ESTIMATE );
     fftw_plan ifft_res = fftw_plan_dft_2d( height ,width, reinterpret_cast<fftw_complex*>(res.data()),  
                                                           reinterpret_cast<fftw_complex*>(res.data()),  FFTW_BACKWARD, FFTW_ESTIMATE );
-    
-    int i, j, k;
-    float* p;
-    float* q;
-    double  tmp, tmp2;
-    for( i = 0, k = 0 ; i < height ; i++ ) {
-        p = im1.ptr<float>(i);
-        q = im2.ptr<float>(i);
-        for( j = 0 ; j < width ; j++, k++ ) {
-            
-            img1[k] = ( double ) p[j] + 0.0j;
-            img2[k] = ( double ) q[j] + 0.0j;
-
-        }
-    }
 
     /* Compute FFT of img1 */
     fftw_execute( fft_img1 );
@@ -89,13 +75,6 @@ void phaseCorrelation(cv::Mat& im1,cv::Mat& im2,cv::Mat& result_im)
         *cv_img++ = (float) res[i].real()/fft_size;
     }
 
-
-    // cv::imshow("ss", result_im);
-    // cv::waitKey(0);
-    // VLOG(1) << "max_loc: " << max_loc;
-    //VLOG(1) << "max_row: " << max_loc/width;
-    //VLOG(1) << "max_col: " << max_loc%width;
-    // VLOG(1) << "max_val: " << max_val;
     VLOG(1) << "Detected x = " << max_loc%width;
     VLOG(1) << "Detected y = " << max_loc/width;
 
@@ -127,7 +106,27 @@ int main(int argc, char* argv[])
     cv::imshow("0", img141);
     //cv::imshow("1", img141_translated);
     cv::waitKey(0);
-    phaseCorrelation(img141, img141_translated, result);
+    cv::Size sz = img141.size();
+    int height = sz.height;
+    int width = sz.width;
+    int fft_size = width*height;
+    int i, j, k;
+    char* p;
+    char* q;
+    std::vector<std::complex<double>> img1(height*width);
+    std::vector<std::complex<double>> img2(height*width); 
+    for( i = 0, k = 0 ; i < height ; i++ ) {
+        p = img141.ptr<char>(i);
+        q = img141_translated.ptr<char>(i);
+        for( j = 0 ; j < width ; j++, k++ ) {
+            
+            img1[k] = ( double ) p[j] + 0.0j;
+            img2[k] = ( double ) q[j] + 0.0j;
+
+        }
+    }
+    std::vector<std::complex<double>> img2_copy = img2;
+    phaseCorrelation(img1,img2, result);
     VLOG(1) << "tx = " << tx;
     VLOG(1) << "ty = " << ty;
 
