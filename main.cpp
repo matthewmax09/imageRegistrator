@@ -58,11 +58,14 @@ void phaseCorrelation(std::vector<std::complex<double>> &img1,std::vector<std::c
     //fftw_complex *shifted  = ( fftw_complex* )fftw_malloc( sizeof( fftw_complex ) * width * height );
 
     fftw_plan fft_img1 = fftw_plan_dft_2d( height ,width, reinterpret_cast<fftw_complex*>(img1.data()), 
-                                                          reinterpret_cast<fftw_complex*>(img1.data()), FFTW_FORWARD,  FFTW_ESTIMATE );
+                                                          reinterpret_cast<fftw_complex*>(img1.data()), 
+                                                          FFTW_FORWARD,  FFTW_ESTIMATE );
     fftw_plan fft_img2 = fftw_plan_dft_2d( height ,width, reinterpret_cast<fftw_complex*>(img2.data()), 
-                                                          reinterpret_cast<fftw_complex*>(img2.data()), FFTW_FORWARD,  FFTW_ESTIMATE );
+                                                          reinterpret_cast<fftw_complex*>(img2.data()), 
+                                                          FFTW_FORWARD,  FFTW_ESTIMATE );
     fftw_plan ifft_res = fftw_plan_dft_2d( height ,width, reinterpret_cast<fftw_complex*>(res.data()),  
-                                                          reinterpret_cast<fftw_complex*>(res.data()),  FFTW_BACKWARD, FFTW_ESTIMATE );
+                                                          reinterpret_cast<fftw_complex*>(res.data()),  
+                                                          FFTW_BACKWARD, FFTW_ESTIMATE );
 
     /* Compute FFT of img1 */
     fftw_execute( fft_img1 );
