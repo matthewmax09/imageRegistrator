@@ -15,6 +15,16 @@ void getLogPolar(image)
 }
 */
 
+std::vector<double> hanning_window(int window_size) {
+    std::vector<double> window(window_size);
+    for (int i = 0; i < window_size; i++) {
+        
+        window[i] = 0.5 * (1 - std::cos(2 * M_PI * i / (window_size - 1)));
+    
+    }
+    return window;
+}
+
 void fftShift(std::vector<std::complex<double>> &img, const int &width, const int &height, const bool forward = true)
 {
     /* Inspired by https://stackoverflow.com/questions/29226465/fftshift-c-implemetation-for-opencv */ 
