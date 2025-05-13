@@ -24,6 +24,40 @@ std::vector<double> hanning_window(int window_size) {
     }
     return window;
 }
+// Need to precomupte apodization window to simplify the apodization.
+void apodize (std::vector<std::complex<double>> &img, const int &width, const int &height)
+{
+    //int aporad = width *0.12;
+    int apowidth = width * 0.12;
+    int apoheight = height * 0.12;
+    std::vector<double> han_width = hanning_window(apowidth*2);
+    std::vector<double> han_height = hanning_window(apoheight*2);
+    for (int i = 0; i < apoheight; i++) {
+        int step = i*width;
+        int rstep = (height-1-i)*width;
+        // Iterate top and bottom midsection
+        for (int k = apowidth; k < width-apowidth; k++){
+            img[step+k] *= han_height[i];
+            img[rstep+k] *= han_height[i];
+        }
+        // Iterate through the 4 corners at one shot (works for even width and height)
+        for (int k = 0; k < apowidth; k++) {
+            double tmp = han_height[i]*han_width[k];
+            img[step+k] *= tmp;
+            img[step+width-1-k] *= tmp;
+            img[rstep+k] *= tmp;
+            img[rstep+width-1-k] *= tmp;
+        }
+    }
+    // Iterate left and right midsection
+    for (int i = apoheight; i < height-apoheight; i++){
+        int step = i*width;
+        for (int k = 0; k < apowidth; k++){
+            img[step+k] *= han_width[k];
+            img[step+width-1-k] *= han_width[k];
+        }
+    }
+}
 
 void fftShift(std::vector<std::complex<double>> &img, const int &width, const int &height, const bool forward = true)
 {
@@ -127,18 +161,19 @@ int main(int argc, char* argv[])
     cv::imshow("0", img141);
     //cv::imshow("1", img141_translated);
     cv::waitKey(0);
+     
     cv::Size sz = img141.size();
     int height = sz.height;
     int width = sz.width;
     int fft_size = width*height;
     int i, j, k;
-    char* p;
-    char* q;
+    unsigned char* p;
+    unsigned char* q;
     std::vector<std::complex<double>> img1(height*width);
     std::vector<std::complex<double>> img2(height*width); 
     for( i = 0, k = 0 ; i < height ; i++ ) {
-        p = img141.ptr<char>(i);
-        q = img141_translated.ptr<char>(i);
+        p = img141.ptr<unsigned char>(i);
+        q = img141_translated.ptr<unsigned char>(i);
         for( j = 0 ; j < width ; j++, k++ ) {
             
             img1[k] = ( double ) p[j] + 0.0j;
