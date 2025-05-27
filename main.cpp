@@ -26,6 +26,30 @@ T percentile(std::vector<T> vectorIn, int percent)
     return *nth;
 }
 
+// https://gist.github.com/lorenzoriano/5414671:
+template <typename T>
+std::vector<T> linspace(double start, double end, double num, bool endpoint=true)
+{
+    CHECK_NE(num,0);
+    std::vector<T> linspaced;
+    
+    // Pushback exact start
+    linspaced.push_back(static_cast<T>(start));
+    
+    if (num == 1) {return linspaced;}
+    if (endpoint) --num;
+    double delta = (end - start)/num;
+    for (int i = 1; i < num; i++)
+    {
+        linspaced.push_back(static_cast<T>(start + delta*i));
+    }
+    
+    // if include endpoint, pushback exact end
+    if (endpoint) linspaced.push_back(static_cast<T>(end));
+    
+    return linspaced;
+}
+
 double getGaussianKernel(std::vector<double>& result, int n, double sigma)
 {
     // CV_Assert(n > 0);
