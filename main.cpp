@@ -14,6 +14,17 @@ void getLogPolar(image)
     // 4. Perform polar transform
 }
 */
+// https://stackoverflow.com/questions/28548703/why-does-stdnth-element-return-sorted-vectors-for-input-vectors-with-n-33-el
+template <typename T>
+T percentile(std::vector<T> vectorIn, int percent)
+{
+    CHECK_LE(percent,100);
+    CHECK_GE(percent,0);
+    
+    auto nth = vectorIn.begin() + (percent*vectorIn.size())/100;
+    std::nth_element(vectorIn.begin(), nth, vectorIn.end());
+    return *nth;
+}
 
 double getGaussianKernel(std::vector<double>& result, int n, double sigma)
 {
