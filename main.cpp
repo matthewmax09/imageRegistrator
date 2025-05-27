@@ -50,6 +50,65 @@ std::vector<T> linspace(double start, double end, double num, bool endpoint=true
     return linspaced;
 }
 
+void getPolarMap(std::vector<std::pair<double,double>> &map, const double &width, const double &height)
+{
+    // Ensure map is cleared before adding to it. 
+    map.clear();
+    double logbase = std::pow(0.55*height,1/width);
+    double cx = width/2.0;
+    double cy = height/2.0;
+    double ellipse_coef = height / width;
+    std::vector<double> log(width);
+    std::vector<double> logx(width);
+    std::vector<double> ang = linspace<double>(0,-M_PI,height,false);
+    for (int i = 0; i<log.size(); i++)
+    {
+        log[i] = std::pow(logbase,i);
+        logx[i] = log[i]/ellipse_coef;
+    }
+    for (auto a : ang){
+        for (int i = 0; i<log.size(); i++){
+            // x = l*cos(a)+cx
+            // y = l*sin(a)+cy
+            map.emplace_back(std::make_pair(logx[i]*cos(a)+cx,log[i]*sin(a)+cy));
+        }
+    }
+}
+
+std::vector<double> mapCoordinates(std::vector<double> &img, std::vector<std::pair<double,double>> &map, const int &width, const int &height )
+{
+    // Check that size of map and image are equal
+    CHECK_EQ(img.size(),map.size());
+
+    double bgval = percentile<double>(img,1);
+    std::vector<double> output(img.size());
+    for (int i = 0; i<img.size(); ++i)
+    {
+        double x,y;
+        double xr = std::modf(map[i].first,&x);        
+        double yr = std::modf(map[i].second,&y);
+        double tl = y*width + x;
+        double bl = tl+width;
+
+        // Check Coordinates are within bounds. Otherwise pad with bgval.
+        bool edge[4] = {
+            y<height        &&  y>=0, 
+            x<width         &&  x>=0, 
+            (y+1)<height    &&  (y+1)>=0, 
+            (x+1)<width     &&  (x+1)>=0
+        };
+
+        // Map
+        double xx =  (edge[0] && edge[1])?img[tl]:bgval;++tl;
+        double xy =  (edge[2] && edge[1])?img[bl]:bgval;++bl;
+        double xx1 = (edge[0] && edge[3])?img[tl]:bgval;
+        double xy1 = (edge[2] && edge[3])?img[bl]:bgval;
+       
+        output[i] = xx*(1-xr)*(1-yr) + xy*(1-xr)*yr + xx1*xr*(1-yr) +xy1*xr*yr;
+    }
+    return output;
+}
+
 double getGaussianKernel(std::vector<double>& result, int n, double sigma)
 {
     // CV_Assert(n > 0);
