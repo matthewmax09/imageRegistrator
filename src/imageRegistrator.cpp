@@ -11,16 +11,17 @@ imageRegistrator::imageRegistrator(int height, int width)
  _size(height*width),
  _heightd(height),
  _widthd(width),
- map(getPolarMap())
+ map(getPolarMap()),
+ filter(gaussianHPF(22)),
 {
     /* Create FFTW Plans - when deploying code, 
     use FFTW_PATIENT instead of FFTW_ESTIMATE to optimize for speed */
-    std::vector<std::complex<double>> img11 = std::vector<std::complex<double>>( _size );
-    fft_forward = fftw_plan_dft_2d( _height ,_width,reinterpret_cast<fftw_complex*>(img11.data()), 
-                                                    reinterpret_cast<fftw_complex*>(img11.data()), 
+    std::vector<std::complex<double>> tmp = std::vector<std::complex<double>>( _size );
+    fft_forward = fftw_plan_dft_2d( _height ,_width,reinterpret_cast<fftw_complex*>(tmp.data()), 
+                                                    reinterpret_cast<fftw_complex*>(tmp.data()), 
                                                     FFTW_FORWARD,  FFTW_ESTIMATE );
-    fft_backward = fftw_plan_dft_2d( _height ,_width,reinterpret_cast<fftw_complex*>(img11.data()), 
-                                                    reinterpret_cast<fftw_complex*>(img11.data()), 
+    fft_backward = fftw_plan_dft_2d( _height ,_width,reinterpret_cast<fftw_complex*>(tmp.data()), 
+                                                    reinterpret_cast<fftw_complex*>(tmp.data()), 
                                                     FFTW_BACKWARD,  FFTW_ESTIMATE );
 }
 
@@ -217,5 +218,23 @@ void imageRegistrator::phaseCorrelation(std::vector<std::complex<double>> &img1,
 
     VLOG(1) << "Detected x = " << max_loc%_width;
     VLOG(1) << "Detected y = " << max_loc/_width;
-
 }
+
+std::vector<double> imageRegistrator::logPolarTransform(std::vector<std::complex<double>> &img)
+{
+    // 1.) Apodize image
+    apodize(img);
+    // 2.) FFT image
+    fftw_execute_dft(   fft_forward,
+        reinterpret_cast<fftw_complex*>(img.data()),
+        reinterpret_cast<fftw_complex*>(img.data()));
+        // 3.) FFTShift to HPF
+    fftShift(img);
+    // 4.) HPF
+    std::vector<double> dftHPF(_size);
+    for (int i = 0; i < _size; ++i){
+        dftHPF[i] = std::abs(img[i]*filter[i]);
+    }
+    return mapCoordinates(dftHPF);
+}
+

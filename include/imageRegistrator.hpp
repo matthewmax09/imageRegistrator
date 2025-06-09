@@ -9,8 +9,11 @@ private:
     const double _heightd;
     const double _widthd;
     const std::vector<std::pair<double,double>> map;
+    const std::vector<double> filter;
+    
 
     std::vector<std::pair<double,double>> getPolarMap();
+    std::vector<double> gaussianHPF (double sigma);
 
     fftw_plan fft_forward;
     fftw_plan fft_backward;
@@ -25,7 +28,7 @@ public:
     std::vector<double> mapCoordinates(std::vector<double> &img);
 
     void fftShift(std::vector<std::complex<double>> &img, const bool forward = true);
-    std::vector<double> gaussianHPF (double sigma);
     void apodize (std::vector<std::complex<double>> &img);
     void phaseCorrelation(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2);
+    std::vector<double> logPolarTransform(std::vector<std::complex<double>> &img);
 };
