@@ -308,3 +308,21 @@ void imageRegistrator::centerOfMass(const std::vector<std::complex<double>> &img
     com.second = sumX/sum +x-5;
 
 }
+
+std::pair<double, double> imageRegistrator::getAngScale(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2)
+{
+    std::vector<std::complex<double>> lp1(_size);
+    std::vector<std::complex<double>> lp2(_size);
+    logPolarTransform(img1,lp1);
+    logPolarTransform(img2,lp2);
+
+    std::pair<double,double> results;
+    phaseCorrelation(lp1,lp2,results);
+
+    // convert from pixels to angle and scale
+    double logbase = std::pow(0.55*_heightd,1.0/_widthd);
+    results.first *= 180/_heightd;
+    results.second = std::pow(logbase,results.second);
+
+    return results;
+}
