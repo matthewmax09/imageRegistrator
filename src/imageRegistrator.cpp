@@ -12,7 +12,7 @@ imageRegistrator::imageRegistrator(int height, int width)
  _heightd(height),
  _widthd(width),
  map(getPolarMap()),
- filter(gaussianHPF(22)),
+ filter(gaussianHPF(22))
 {
     /* Create FFTW Plans - when deploying code, 
     use FFTW_PATIENT instead of FFTW_ESTIMATE to optimize for speed */
