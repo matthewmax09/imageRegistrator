@@ -15,6 +15,7 @@ private:
     std::vector<std::pair<double,double>> getPolarMap();
     std::vector<double> gaussianHPF (double sigma);
     std::vector<double> mapCoordinates(std::vector<double> &img);
+    void centerOfMass(const std::vector<std::complex<double>> &img, int m, std::pair<double, double> &com);
 
     fftw_plan fft_forward;
     fftw_plan fft_backward;

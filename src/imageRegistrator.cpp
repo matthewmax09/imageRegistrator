@@ -1,6 +1,7 @@
 #include <glog/logging.h>
-#include <cmath>
-#include <complex.h>
+// #include <cmath>
+#include <complex>
+#include <numeric>
 #include <fftw3.h>
 #include "imageRegistrator.hpp"
 #include "utils.hpp"
@@ -216,8 +217,13 @@ void imageRegistrator::phaseCorrelation(std::vector<std::complex<double>> &img1,
         // *cv_img++ = (float) res[i].real()/fft_size;
     }
 
-    VLOG(1) << "Detected x = " << max_loc%_width;
-    VLOG(1) << "Detected y = " << max_loc/_width;
+    // VLOG(1) << "Detected x = " << max_loc%_width;
+    // VLOG(1) << "Detected y = " << max_loc/_width;
+    // VLOG(1) << "Rotation = " << max_loc/_width*180/_heightd;
+    std::pair<double,double> results;
+    centerOfMass(res,max_loc,results);
+    VLOG(1) << "Rotation = " << results.first*180/_heightd;
+
 }
 
 std::vector<double> imageRegistrator::logPolarTransform(std::vector<std::complex<double>> &img)
@@ -238,3 +244,30 @@ std::vector<double> imageRegistrator::logPolarTransform(std::vector<std::complex
     return mapCoordinates(dftHPF);
 }
 
+void imageRegistrator::centerOfMass(const std::vector<std::complex<double>> &img, int m, std::pair<double, double> &com)
+{
+    // Get Subarray
+    std::vector<double> col = {0,1,2,3,4};
+    std::vector<int> xIdx;
+    std::vector<int> yIdx;
+    int x = m%_width-2;
+    int y = m/_width-2;
+    for (int j = 0; j<5; ++j,++x,++y){
+        xIdx.emplace_back(x<0?x+_width:x);
+        yIdx.emplace_back(y<0?y+_width:y);
+    }
+    double sumX=0;
+    double sumY=0;  
+    double sum=0;
+    for (int j = 0; j<5;++j){
+        for (int i = 0; i<5;++i){
+            sumX += img[yIdx[j]*_width+xIdx[i]].real()*col[i];
+            sumY += img[yIdx[j]*_width+xIdx[i]].real()*col[j];
+            sum  += img[yIdx[j]*_width+xIdx[i]].real();
+        }
+    }
+    // minus 5 to compensate for index increments in line 291
+    com.first  = sumY/sum +y-5;
+    com.second = sumX/sum +x-5;
+
+}
