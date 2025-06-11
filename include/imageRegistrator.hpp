@@ -15,6 +15,8 @@ private:
     std::vector<std::pair<double,double>> getPolarMap();
     std::vector<double> gaussianHPF (double sigma);
     std::vector<double> mapCoordinates(std::vector<double> &img);
+    void mapCoordinates(std::vector<double> &img, std::vector<double> &output);
+    void mapCoordinates(std::vector<double> &img, std::vector<std::complex<double>> &output);
     void centerOfMass(const std::vector<std::complex<double>> &img, int m, std::pair<double, double> &com);
 
     fftw_plan fft_forward;
@@ -30,7 +32,10 @@ public:
 
     void fftShift(std::vector<std::complex<double>> &img, const bool forward = true);
     void apodize (std::vector<std::complex<double>> &img);
-    void phaseCorrelation(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2);
-    std::vector<double> logPolarTransform(std::vector<std::complex<double>> &img);
+    void phaseCorrelation(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2,std::pair<double,double> &results);
+
+    template <typename T>
+    void logPolarTransform(std::vector<std::complex<double>> &img, std::vector<T> &output);
+
 
 };

@@ -6,6 +6,8 @@
 #include "imageRegistrator.hpp"
 #include "utils.hpp"
 
+using namespace std::literals;
+
 imageRegistrator::imageRegistrator(int height, int width)
 :_height(height),
  _width(width),
@@ -70,13 +72,13 @@ std::vector<std::pair<double,double>> imageRegistrator::getPolarMap()
     return _map;
 }
 
-std::vector<double> imageRegistrator::mapCoordinates(std::vector<double> &img)
+void imageRegistrator::mapCoordinates(std::vector<double> &img, std::vector<double> &output)
 {
     // Check that size of map and image are equal
     CHECK_EQ(img.size(),map.size());
 
     double bgval = percentile<double>(img,1);
-    std::vector<double> output(img.size());
+    output.resize(img.size());
     for (int i = 0; i<img.size(); ++i)
     {
         double x,y;
@@ -101,7 +103,40 @@ std::vector<double> imageRegistrator::mapCoordinates(std::vector<double> &img)
        
         output[i] = xx*(1-xr)*(1-yr) + xy*(1-xr)*yr + xx1*xr*(1-yr) +xy1*xr*yr;
     }
-    return output;
+}
+
+void imageRegistrator::mapCoordinates(std::vector<double> &img, std::vector<std::complex<double>> &output)
+{
+    // Check that size of map and image are equal
+    CHECK_EQ(img.size(),map.size());
+
+    double bgval = percentile<double>(img,1);
+    // std::vector<double> output(img.size());
+    output.resize(img.size());
+    for (int i = 0; i<img.size(); ++i)
+    {
+        double x,y;
+        double xr = std::modf(map[i].first,&x);        
+        double yr = std::modf(map[i].second,&y);
+        double tl = y*_width + x;
+        double bl = tl+_width;
+
+        // Check Coordinates are within bounds. Otherwise pad with bgval.
+        bool edge[4] = {
+            y<_height        &&  y>=0, 
+            x<_width         &&  x>=0, 
+            (y+1)<_height    &&  (y+1)>=0, 
+            (x+1)<_width     &&  (x+1)>=0
+        };
+
+        // Map
+        double xx =  (edge[0] && edge[1])?img[tl]:bgval;++tl;
+        double xy =  (edge[2] && edge[1])?img[bl]:bgval;++bl;
+        double xx1 = (edge[0] && edge[3])?img[tl]:bgval;
+        double xy1 = (edge[2] && edge[3])?img[bl]:bgval;
+       
+        output[i] = xx*(1-xr)*(1-yr) + xy*(1-xr)*yr + xx1*xr*(1-yr) +xy1*xr*yr+0.0i;
+    }
 }
 
 std::vector<double> imageRegistrator::gaussianHPF (double sigma)
@@ -173,7 +208,7 @@ void imageRegistrator::fftShift(std::vector<std::complex<double>> &img, const bo
     }
 }
 
-void imageRegistrator::phaseCorrelation(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2)
+void imageRegistrator::phaseCorrelation(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2,std::pair<double,double> &results) 
 {
     /* Inspired by (keeping links for future reference)
     https://stackoverflow.com/questions/75750139/c-attemping-to-use-stdrotate-with-fftw-complex-data-yields-error-array-mu
@@ -220,13 +255,12 @@ void imageRegistrator::phaseCorrelation(std::vector<std::complex<double>> &img1,
     // VLOG(1) << "Detected x = " << max_loc%_width;
     // VLOG(1) << "Detected y = " << max_loc/_width;
     // VLOG(1) << "Rotation = " << max_loc/_width*180/_heightd;
-    std::pair<double,double> results;
     centerOfMass(res,max_loc,results);
-    VLOG(1) << "Rotation = " << results.first*180/_heightd;
 
 }
 
-std::vector<double> imageRegistrator::logPolarTransform(std::vector<std::complex<double>> &img)
+template <typename T>
+void imageRegistrator::logPolarTransform(std::vector<std::complex<double>> &img, std::vector<T> &output)
 {
     // 1.) Apodize image
     apodize(img);
@@ -241,13 +275,16 @@ std::vector<double> imageRegistrator::logPolarTransform(std::vector<std::complex
     for (int i = 0; i < _size; ++i){
         dftHPF[i] = std::abs(img[i]*filter[i]);
     }
-    return mapCoordinates(dftHPF);
+    mapCoordinates(dftHPF, output);
 }
+
+template void imageRegistrator::logPolarTransform<double>(std::vector<std::complex<double>> &img, std::vector<double> &output);
+template void imageRegistrator::logPolarTransform<std::complex<double>>(std::vector<std::complex<double>> &img, std::vector<std::complex<double>> &output);
 
 void imageRegistrator::centerOfMass(const std::vector<std::complex<double>> &img, int m, std::pair<double, double> &com)
 {
     // Get Subarray
-    std::vector<double> col = {0,1,2,3,4};
+    constexpr static std::array<double,5> col = {0,1,2,3,4};
     std::vector<int> xIdx;
     std::vector<int> yIdx;
     int x = m%_width-2;
@@ -266,7 +303,7 @@ void imageRegistrator::centerOfMass(const std::vector<std::complex<double>> &img
             sum  += img[yIdx[j]*_width+xIdx[i]].real();
         }
     }
-    // minus 5 to compensate for index increments in line 291
+    // minus 5 to compensate for index increments in line -13 (xIdx.emplace_back)
     com.first  = sumY/sum +y-5;
     com.second = sumX/sum +x-5;
 
