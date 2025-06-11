@@ -9,7 +9,7 @@
 #include "utils.hpp"
 
 #include <fstream>
-
+using namespace std::literals;
 /*
 void getLogPolar(image)
 {   
@@ -19,6 +19,24 @@ void getLogPolar(image)
     // 4. Perform polar transform
 }
 */
+
+void complexRealToDoubleMat(std::vector<std::complex<double>> &in, cv::Mat &out)
+{
+    CHECK_EQ(in.size(),out.total());
+    CHECK_EQ(6,out.type());
+    double* cv_img = ( double* )out.data;
+    int size = in.size();
+    for (auto i:in){
+        *cv_img++ = i.real();
+    }
+
+}
+
+void translateImage(cv::Mat &in, cv::Mat &out, double tx, double ty)
+{
+    cv::Mat translation_matrix = (cv::Mat_<double>(2, 3) << 1, 0, tx, 0, 1, ty);
+    cv::warpAffine(in, out, translation_matrix, in.size());
+}
 
 void print2DArray(std::vector<double> arr, int width, int height) {
     for (int i = 0; i < height; i++) {
@@ -44,18 +62,14 @@ int main(int argc, char* argv[])
     FLAGS_alsologtostderr = true;
     FLAGS_colorlogtostderr = true;
 
-    cv::Mat img141 = cv::imread("/home/airlab/.ros/cropped/Last141.png",0);
-    cv::Mat img5 = cv::imread("/home/airlab/.ros/cropped/First5.png",0);
-    //VLOG(1) << "image size = " << img5.size[0]*img5.size[1];
+    cv::Mat img141 = cv::imread("../images/2231_crop.png",0);
+    cv::Mat img5 = cv::imread("../images/2232_crop.png",0);
     cv::Mat result(img5.size(), CV_32FC1);
     //img5.convertTo(img5, CV_32FC1);
     //img141.convertTo(img141, CV_32FC1);
-    double tx = 100;
-    double ty = 50;
-    cv::Mat translation_matrix = (cv::Mat_<double>(2, 3) << 1, 0, tx, 0, 1, ty);
     cv::Mat img141_translated;
-    cv::warpAffine(img141, img141_translated, translation_matrix, img141.size());
-    //cv::imshow("0", img141);
+    translateImage(img141, img141_translated, 100, 50);
+    // cv::imshow("0", img141);
 //    cv::imshow("1", img141_translated);
 //    cv::waitKey(0);
      
@@ -71,81 +85,30 @@ int main(int argc, char* argv[])
     std::vector<double> img_map(height*width);
     for( i = 0, k = 0 ; i < height ; i++ ) {
         p = img141.ptr<unsigned char>(i);
-        q = img141_translated.ptr<unsigned char>(i);
+        q = img5.ptr<unsigned char>(i);
+        // q = img141_translated.ptr<unsigned char>(i);
         for( j = 0 ; j < width ; j++, k++ ) {
             
-            img1[k] = ( double ) p[j] + 0.0j;
-            img2[k] = ( double ) q[j] + 0.0j;
+            img1[k] = ( double ) p[j] + 0.0i;
+            img2[k] = ( double ) q[j] + 0.0i;
             img_map[k] = ( double ) p[j];
 
         }
     }
     std::vector<std::complex<double>> img2_copy = img1;
-    // phaseCorrelation(img1,img2, result);
-//    VLOG(1) << "tx = " << tx;
-//    VLOG(1) << "ty = " << ty;
     cv::Mat swapped(img5);
-    // std::fill(img2_copy.begin(),img2_copy.end(),255+0.0j);
-//    fftShift(img2_copy,width,height); 
-    // char* cv_img = ( char* )swapped.data;
-    // for( i = 0; i < fft_size ; i++ ) {
-    //     *cv_img++ = (char) img2_copy[i].real();
-    // }
-    // cv::imshow("0", swapped);
-    // cv::waitKey(0);
-//    fftShift(img2_copy,width,height,false);
-//    cv_img = ( char* )swapped.data;
-//    for( i = 0; i < fft_size ; i++ ) {
-//        *cv_img++ = (char) img2_copy[i].real();
-//    }
-//    cv::imshow("0", swapped);
-//    cv::waitKey(0);
-    // apodize(img2_copy,width,height);
-    // cv_img = ( char* )swapped.data;
-    // for( i = 0; i < fft_size ; i++ ) {
-    //     *cv_img++ = (char) img2_copy[i].real();
-    // }
-    //cv::imshow("0", swapped);
-    //cv::waitKey(0);
 
-    // for(auto i:aaa){VLOG(1) << i;}
     imageRegistrator imreg(height,width);
-    // std::vector<double> img2_polar = imreg.mapCoordinates(img_map);
-    std::fill(img2_copy.begin(),img2_copy.end(),255+0.0j);
-    // imreg.apodize(img2_copy);
-    img_map = imreg.gaussianHPF(22);
     cv::Mat im1(img5.size(), CV_64FC1);
-    cv::Mat im2(img5.size(), CV_8UC1);
-     double* cv_img = ( double* )im1.data;
-     for( i = 0; i < fft_size ; i++ ) {
-         *cv_img++ = img_map[i];
-     }
-
-    uchar* cv_img1 = ( uchar* )im2.data;
-    for( i = 0; i < fft_size ; i++ ) {
-        // *cv_img1++ = cv::saturate_cast<uchar>(img_map[i]*255);
-        *cv_img1++ = roundCast<uchar>(img_map[i]*255);
-    }
+    cv::Mat im2(img5.size(), CV_64FC1);
+    
+    complexRealToDoubleMat(img1,im1);
     cv::normalize(im1,im1,255,0,cv::NORM_MINMAX,CV_8UC1);
-    // bool eq = std::equal(result2.begin<uchar>(), result2.end<uchar>(), swapped.begin<uchar>());
-    // VLOG(1)<< eq;
-    VLOG(1) << areEqual(im1,im2);
-
-    imreg.phaseCorrelation(img1,img2);
-    // cv::imshow("0", result2);
-    // cv::waitKey(0);
-    // for (auto i:map){VLOG(1)<< i.first;}
-
-    // imageRegistrator imreg(height,width);
-
-    // cv::imwrite("/home/airlab/cpp_img.png",swapped);
-
-    // std::ofstream outfile{"test.bin", std::ios::binary};
-    // outfile.write(reinterpret_cast<const char *>(img_map.data()),
-    //                 img_map.size() * sizeof(decltype(img_map)::value_type));
-    // outfile.close();
-
-    // VLOG(1)<< "Class height: " << imreg.getHeight();
-    // VLOG(1)<< "Class width: " << imreg.getWidth();
+    cv::imshow("1", im1);
+    // cv::imshow("2", im2);
+    cv::waitKey(0);
+    auto results = imreg.getAngScale(img1,img2);
+    VLOG(1) << "Rotation = " << results.first;
+    VLOG(1) << "Scale = " << results.second;
 
 }
