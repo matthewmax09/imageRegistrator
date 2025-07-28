@@ -35,6 +35,7 @@ public:
     void fftShift(std::vector<std::complex<double>> &img, const bool forward = true);
     template <typename T>
     void apodize (std::vector<T> &img);
+    void phaseCorrelation(std::vector<std::complex<double>> img1,std::vector<std::complex<double>> img2,std::pair<double,double> &results);
 
     template <typename T>
     void logPolarTransform(std::vector<std::complex<double>> &img, std::vector<T> &output);

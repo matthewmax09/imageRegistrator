@@ -5,7 +5,7 @@
 #include <fftw3.h>
 #include "imageRegistrator.hpp"
 #include "utils.hpp"
-
+#include <omp.h>
 using namespace std::literals;
 
 imageRegistrator::imageRegistrator(int height, int width)
@@ -20,6 +20,9 @@ imageRegistrator::imageRegistrator(int height, int width)
 {
     /* Create FFTW Plans - when deploying code, 
     use FFTW_PATIENT instead of FFTW_ESTIMATE to optimize for speed */
+    fftw_init_threads();
+    fftw_plan_with_nthreads(2);
+
     std::vector<std::complex<double>> tmp = std::vector<std::complex<double>>( _size );
     std::vector<double> tmp1(_size);
     fft_forward = fftw_plan_dft_2d( _height ,_width,reinterpret_cast<fftw_complex*>(tmp.data()), 
@@ -35,7 +38,8 @@ imageRegistrator::~imageRegistrator()
     /* deallocate FFTW arrays and plans */
     fftw_destroy_plan( fft_forward );
     fftw_destroy_plan( fft_backward );
-
+    fftw_cleanup_threads();
+    
 }
 
 double imageRegistrator::getHeight()
@@ -152,6 +156,7 @@ void imageRegistrator::mapCoordinates(std::vector<double> &img, std::vector<std:
     double bgval = percentile<double>(img,1);
     // std::vector<double> output(img.size());
     output.resize(img.size());
+    #pragma omp parallel for
     for (int i = 0; i<img.size(); ++i)
     {
         double x,y;
@@ -250,7 +255,7 @@ void imageRegistrator::fftShift(std::vector<std::complex<double>> &img, const bo
     }
 }
 
-void imageRegistrator::phaseCorrelation(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2,std::pair<double,double> &results) 
+void imageRegistrator::phaseCorrelation(std::vector<std::complex<double>> img1,std::vector<std::complex<double>> img2,std::pair<double,double> &results) 
 {
     /* Inspired by (keeping links for future reference)
     https://stackoverflow.com/questions/75750139/c-attemping-to-use-stdrotate-with-fftw-complex-data-yields-error-array-mu
@@ -258,7 +263,7 @@ void imageRegistrator::phaseCorrelation(std::vector<std::complex<double>> &img1,
     */
 
     std::vector<std::complex<double>> res(_size);
-
+ 
     /* Compute FFT of img1 */
     fftw_execute_dft(   fft_forward,
                         reinterpret_cast<fftw_complex*>(img1.data()),
@@ -270,6 +275,7 @@ void imageRegistrator::phaseCorrelation(std::vector<std::complex<double>> &img1,
                         reinterpret_cast<fftw_complex*>(img2.data()));
 
     /* Compute Cross Power Spectrum */
+    #pragma omp parallel for
     for(int i = 0; i < _size ; i++ ) {
         
         res[i] = img2[i]*std::conj(img1[i]);
@@ -282,22 +288,12 @@ void imageRegistrator::phaseCorrelation(std::vector<std::complex<double>> &img1,
                         reinterpret_cast<fftw_complex*>(res.data()),
                         reinterpret_cast<fftw_complex*>(res.data()));
 
-    // float* cv_img = ( float* )result_im.data;
-    /* Get argmax of ifft*/
-    double max_val = 0;
-    int max_loc = 0;
-    for(int i = 0; i < _size ; i++ ) {
-            if (res[i].real()>max_val){
-                max_loc =i;
-                max_val = res[i].real();
-            }
-        // *cv_img++ = (float) res[i].real()/fft_size;
-    }
+    auto result = std::max_element(res.begin(), res.end(), [](std::complex<double> a, std::complex<double> b)
+    {
+        return a.real() < b.real();
+    });
 
-    // VLOG(1) << "Detected x = " << max_loc%_width;
-    // VLOG(1) << "Detected y = " << max_loc/_width;
-    // VLOG(1) << "Rotation = " << max_loc/_width*180/_heightd;
-    centerOfMass(res,max_loc,results);
+    centerOfMass(res,std::distance(res.begin(), result),results);
 
 }
 
