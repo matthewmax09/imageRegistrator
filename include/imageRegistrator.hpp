@@ -10,9 +10,11 @@ private:
     const double _widthd;
     const std::vector<std::pair<double,double>> map;
     const std::vector<double> filter;
+    const std::vector<std::pair<int,double>> mask;
     
 
     std::vector<std::pair<double,double>> getPolarMap();
+    std::vector<std::pair<int,double>> apodizeMask();
     std::vector<double> gaussianHPF (double sigma);
     std::vector<double> mapCoordinates(std::vector<double> &img);
     void mapCoordinates(std::vector<double> &img, std::vector<double> &output);

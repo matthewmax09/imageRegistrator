@@ -72,6 +72,42 @@ std::vector<std::pair<double,double>> imageRegistrator::getPolarMap()
     return _map;
 }
 
+std::vector<std::pair<int,double>> imageRegistrator::apodizeMask()
+{
+    std::vector<std::pair<int,double>> mask;
+    //int aporad = _width *0.12;
+    int apowidth = _width * 0.12;
+    int apoheight = _height * 0.12;
+    std::vector<double> han_width = hanning_window(apowidth*2);
+    std::vector<double> han_height = hanning_window(apoheight*2);
+    for (int i = 0; i < apoheight; i++) {
+        int step = i*_width;
+        int rstep = (_height-1-i)*_width;
+        // Iterate top and bottom midsection
+        for (int k = apowidth; k < _width-apowidth; k++){
+            mask.emplace_back(std::make_pair(step+k,han_height[i]));
+            mask.emplace_back(std::make_pair(rstep+k,han_height[i]));
+        }
+        // Iterate through the 4 corners at one shot (works for even width and height)
+        for (int k = 0; k < apowidth; k++) {
+            double tmp = han_height[i]*han_width[k];
+            mask.emplace_back(std::make_pair(step+k,tmp));
+            mask.emplace_back(std::make_pair(step+_width-1-k,tmp));
+            mask.emplace_back(std::make_pair(rstep+k,tmp));
+            mask.emplace_back(std::make_pair(rstep+_width-1-k,tmp));
+        }
+    }
+    // Iterate left and right midsection
+    for (int i = apoheight; i < _height-apoheight; i++){
+        int step = i*_width;
+        for (int k = 0; k < apowidth; k++){
+            mask.emplace_back(std::make_pair(step+k,han_width[k]));
+            mask.emplace_back(std::make_pair(step+_width-1-k,han_width[k]));
+        }
+    }
+    return mask;
+}
+
 void imageRegistrator::mapCoordinates(std::vector<double> &img, std::vector<double> &output)
 {
     // Check that size of map and image are equal
@@ -160,7 +196,6 @@ std::vector<double> imageRegistrator::gaussianHPF (double sigma)
     return kernel;
 }
 
-// Need to precomupte apodization window to simplify the apodization.
 template <typename T>
 void imageRegistrator::apodize (std::vector<T> &img)
 {
