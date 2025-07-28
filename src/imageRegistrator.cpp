@@ -161,7 +161,8 @@ std::vector<double> imageRegistrator::gaussianHPF (double sigma)
 }
 
 // Need to precomupte apodization window to simplify the apodization.
-void imageRegistrator::apodize (std::vector<std::complex<double>> &img)
+template <typename T>
+void imageRegistrator::apodize (std::vector<T> &img)
 {
     //int aporad = _width *0.12;
     int apowidth = _width * 0.12;
@@ -194,6 +195,9 @@ void imageRegistrator::apodize (std::vector<std::complex<double>> &img)
         }
     }
 }
+
+template void imageRegistrator::apodize<double>(std::vector<double> &img);
+template void imageRegistrator::apodize<std::complex<double>>(std::vector<std::complex<double>> &img);
 
 void imageRegistrator::fftShift(std::vector<std::complex<double>> &img, const bool forward )
 {
