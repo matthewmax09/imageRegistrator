@@ -39,8 +39,5 @@ public:
 
     template <typename T>
     void logPolarTransform(std::vector<std::complex<double>> &img, std::vector<T> &output);
-    template <typename T>
-    void logPolarTransform(std::vector<double> &img, std::vector<T> &output);
-
     std::pair<double, double> getAngScale(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2);
 };
