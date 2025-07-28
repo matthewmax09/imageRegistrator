@@ -21,12 +21,17 @@ imageRegistrator::imageRegistrator(int height, int width)
     /* Create FFTW Plans - when deploying code, 
     use FFTW_PATIENT instead of FFTW_ESTIMATE to optimize for speed */
     std::vector<std::complex<double>> tmp = std::vector<std::complex<double>>( _size );
+    std::vector<double> tmp1(_size);
     fft_forward = fftw_plan_dft_2d( _height ,_width,reinterpret_cast<fftw_complex*>(tmp.data()), 
                                                     reinterpret_cast<fftw_complex*>(tmp.data()), 
-                                                    FFTW_FORWARD,  FFTW_ESTIMATE );
+                                                    FFTW_FORWARD, FFTW_PATIENT );
     fft_backward = fftw_plan_dft_2d( _height ,_width,reinterpret_cast<fftw_complex*>(tmp.data()), 
                                                     reinterpret_cast<fftw_complex*>(tmp.data()), 
-                                                    FFTW_BACKWARD,  FFTW_ESTIMATE );
+                                                    FFTW_BACKWARD, FFTW_PATIENT );
+    
+    fft_forward_real = fftw_plan_dft_r2c_2d(_height,_width,tmp1.data(),
+                                                    reinterpret_cast<fftw_complex*>(tmp.data()),
+                                                    FFTW_ESTIMATE);
 }
 
 imageRegistrator::~imageRegistrator()
@@ -34,6 +39,7 @@ imageRegistrator::~imageRegistrator()
     /* deallocate FFTW arrays and plans */
     fftw_destroy_plan( fft_forward );
     fftw_destroy_plan( fft_backward );
+    fftw_destroy_plan( fft_forward_real );
 }
 
 double imageRegistrator::getHeight()
@@ -320,6 +326,57 @@ void imageRegistrator::logPolarTransform(std::vector<std::complex<double>> &img,
 
 template void imageRegistrator::logPolarTransform<double>(std::vector<std::complex<double>> &img, std::vector<double> &output);
 template void imageRegistrator::logPolarTransform<std::complex<double>>(std::vector<std::complex<double>> &img, std::vector<std::complex<double>> &output);
+
+template <typename T>
+void imageRegistrator::logPolarTransform(std::vector<double> &img, std::vector<T> &output)
+{
+    int step, step1, step2;
+    std::vector<std::complex<double>> tmp(_size);
+    std::vector<std::complex<double>> tmp1(_size);
+    // 1.) Apodize image
+    // apodize(img);
+    for (const auto i : mask){
+        img[i.first]*=i.second;
+    }  
+    // 2.) FFT image
+    fftw_execute_dft_r2c(fft_forward_real,
+        img.data(),
+        reinterpret_cast<fftw_complex*>(tmp.data()));
+    int n2 = (_width/2)+1;
+    // Handle the 0th row symmetry carefully:
+    // For the 0th row (DC component), the symmetry is F(0, k) = F*(0, N-k).
+    for (int j = 0; j < n2; j++){
+        tmp1[j] = tmp[j];
+    }
+    for (int j = n2; j < _width; j++)
+    {
+        tmp1[j] = std::conj(tmp[_width-j]);
+    }
+    // For other rows, it's F(i, j) = F*(N0-i, N1-j).
+    for (int i = 1; i < _height; i++){
+        step = i*_width;
+        step1 = i*n2;
+        step2 = (_height-i)*n2;
+        for (int j = 0; j < n2; j++){
+            tmp1[step+j] = tmp[step1+j];
+        }
+        for (int j = n2; j < _width; j++){
+            tmp1[step+j] = tmp[step2+_width-j];
+        }
+    }
+    
+    // 3.) FFTShift to HPF
+    fftShift(tmp1);
+    // 4.) HPF
+    std::vector<double> dftHPF(_size);
+    for (int i = 0; i < _size; ++i){
+        dftHPF[i] = std::abs(tmp1[i]*filter[i]);
+        // VLOG(1) << i;
+    }
+    mapCoordinates(dftHPF, output);
+}
+template void imageRegistrator::logPolarTransform<double>(std::vector<double> &img, std::vector<double> &output);
+template void imageRegistrator::logPolarTransform<std::complex<double>>(std::vector<double> &img, std::vector<std::complex<double>> &output);
 
 void imageRegistrator::centerOfMass(const std::vector<std::complex<double>> &img, int m, std::pair<double, double> &com)
 {
