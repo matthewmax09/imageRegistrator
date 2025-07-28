@@ -23,7 +23,6 @@ private:
 
     fftw_plan fft_forward;
     fftw_plan fft_backward;
-    fftw_plan fft_forward_real;
 
 public:
     imageRegistrator(int height, int width);
