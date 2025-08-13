@@ -14,6 +14,7 @@ imageRegistrator::imageRegistrator(int height, int width)
  _size(height*width),
  _heightd(height),
  _widthd(width),
+ logbase(std::pow(0.55*_heightd,1.0/_widthd)),
  map(getPolarMap()),
  filter(gaussianHPF(22)),
  mask(apodizeMask())

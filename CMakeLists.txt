@@ -6,28 +6,11 @@ set(CMAKE_BUILD_TYPE Release) # Release, RelWithDebInfo
 set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
 set(BUILD_TESTING OFF)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(OpenMP REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
-
-find_library(
-    FFTW_DOUBLE_THREADS_LIB
-    NAMES "fftw3_omp"
-    PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
-)
-          
-if (FFTW_DOUBLE_THREADS_LIB)
-    set(FFTW_DOUBLE_THREADS_LIB_FOUND TRUE)
-    set(FFTW_LIBRARIES ${FFTW_LIBRARIES} ${FFTW_DOUBLE_THREADS_LIB})
-    add_library(FFTW::DoubleThreads INTERFACE IMPORTED)
-    set_target_properties(FFTW::DoubleThreads
-        PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${FFTW_INCLUDE_DIRS}"
-        INTERFACE_LINK_LIBRARIES "${FFTW_DOUBLE_THREADS_LIB}"
-    )
-else()
-    set(FFTW_DOUBLE_THREADS_LIB_FOUND FALSE)
-endif()
+# Adopt https://github.com/egpbos/findFFTW to simplify CMakeLists
+find_package(FFTW REQUIRED COMPONENTS DOUBLE_OPENMP_LIB)
 
 file(GLOB SOURCES src/*.cpp)
 add_subdirectory(thirdparty/glog)
@@ -38,8 +21,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC include)
 
 target_link_libraries(${PROJECT_NAME} 
     ${OpenCV_LIBRARIES}
-    PkgConfig::FFTW
-    ${FFTW_DOUBLE_THREADS_LIB}
+    ${FFTW_LIBRARIES}
     glog::glog
     OpenMP::OpenMP_CXX 
 )
