@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils.hpp"
 class imageRegistrator
 {
 private:
@@ -8,10 +9,11 @@ private:
     const int _size;
     const double _heightd;
     const double _widthd;
+    const double logbase;
     const std::vector<std::pair<double,double>> map;
     const std::vector<double> filter;
     const std::vector<std::pair<int,double>> mask;
-    
+    FixedQueue<std::vector<std::complex<double>>, 2> queue;
 
     std::vector<std::pair<double,double>> getPolarMap();
     std::vector<std::pair<int,double>> apodizeMask();
@@ -40,4 +42,6 @@ public:
     template <typename T>
     void logPolarTransform(std::vector<std::complex<double>> &img, std::vector<T> &output);
     std::pair<double, double> getAngScale(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2);
+    void append(std::vector<std::complex<double>> &img);
+    std::pair<double,double> getAngScale();
 };

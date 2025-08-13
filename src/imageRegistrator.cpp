@@ -4,7 +4,7 @@
 #include <numeric>
 #include <fftw3.h>
 #include "imageRegistrator.hpp"
-#include "utils.hpp"
+// #include "utils.hpp"
 #include <omp.h>
 using namespace std::literals;
 
@@ -23,7 +23,7 @@ imageRegistrator::imageRegistrator(int height, int width)
     fftw_init_threads();
     fftw_plan_with_nthreads(2);
 
-    std::vector<std::complex<double>> tmp = std::vector<std::complex<double>>( _size );
+    std::vector<std::complex<double>> tmp( _size );
     std::vector<double> tmp1(_size);
     fft_forward = fftw_plan_dft_2d( _height ,_width,reinterpret_cast<fftw_complex*>(tmp.data()), 
                                                     reinterpret_cast<fftw_complex*>(tmp.data()), 
@@ -39,7 +39,7 @@ imageRegistrator::~imageRegistrator()
     fftw_destroy_plan( fft_forward );
     fftw_destroy_plan( fft_backward );
     fftw_cleanup_threads();
-    
+
 }
 
 double imageRegistrator::getHeight()
@@ -56,7 +56,7 @@ std::vector<std::pair<double,double>> imageRegistrator::getPolarMap()
 {
     // Ensure map is cleared before adding to it. 
     // map.clear();
-    double logbase = std::pow(0.55*_heightd,1.0/_widthd);
+    // double logbase = std::pow(0.55*_heightd,1.0/_widthd);
     double cx = _widthd/2.0;
     double cy = _heightd/2.0;
     double ellipse_coef = _heightd / _widthd;
@@ -153,7 +153,7 @@ void imageRegistrator::mapCoordinates(std::vector<double> &img, std::vector<std:
     // Check that size of map and image are equal
     CHECK_EQ(img.size(),map.size());
 
-    double bgval = percentile<double>(img,1);
+    const double bgval = percentile<double>(img,1);
     // std::vector<double> output(img.size());
     output.resize(img.size());
     #pragma omp parallel for
@@ -162,8 +162,8 @@ void imageRegistrator::mapCoordinates(std::vector<double> &img, std::vector<std:
         double x,y;
         double xr = std::modf(map[i].first,&x);        
         double yr = std::modf(map[i].second,&y);
-        double tl = y*_width + x;
-        double bl = tl+_width;
+        double tl = y*_widthd + x;
+        double bl = tl+_widthd;
 
         // Check Coordinates are within bounds. Otherwise pad with bgval.
         bool edge[4] = {
@@ -249,7 +249,7 @@ void imageRegistrator::fftShift(std::vector<std::complex<double>> &img, const bo
     int cx = forward ? (_width + 1) / 2 : _width / 2;
     int cy = forward ? (_height + 1) / 2 : _height / 2;
 
-    for(int i = 0, k = 0 ; i < cy ; i++ ) {
+    for(int i = 0; i < cy ; i++ ) {
         std::swap_ranges(img.begin()+i*_width,img.begin()+i*_width+cx, img.begin()+cx+cy*_width+i*_width);
         std::swap_ranges(img.begin()+i*_width+cx,img.begin()+_width+i*_width,img.begin()+cy*_width+i*_width);
     }
@@ -301,15 +301,19 @@ template <typename T>
 void imageRegistrator::logPolarTransform(std::vector<std::complex<double>> &img, std::vector<T> &output)
 {
     // 1.) Apodize image
-    apodize(img);
+    //apodize(img);
+    for (const auto i : mask){
+        img[i.first]*=i.second;
+    }
     // 2.) FFT image
     fftw_execute_dft(   fft_forward,
         reinterpret_cast<fftw_complex*>(img.data()),
         reinterpret_cast<fftw_complex*>(img.data()));
-        // 3.) FFTShift to HPF
+	// 3.) FFTShift to HPF
     fftShift(img);
     // 4.) HPF
     std::vector<double> dftHPF(_size);
+    #pragma omp parallel for
     for (int i = 0; i < _size; ++i){
         dftHPF[i] = std::abs(img[i]*filter[i]);
     }
@@ -322,14 +326,14 @@ template void imageRegistrator::logPolarTransform<std::complex<double>>(std::vec
 void imageRegistrator::centerOfMass(const std::vector<std::complex<double>> &img, int m, std::pair<double, double> &com)
 {
     // Get Subarray
-    constexpr static std::array<double,5> col = {0,1,2,3,4};
+    const static double col[] = {0,1,2,3,4};
     std::vector<int> xIdx;
     std::vector<int> yIdx;
     int x = m%_width-2;
     int y = m/_width-2;
     for (int j = 0; j<5; ++j,++x,++y){
         xIdx.emplace_back(x<0?x+_width:x);
-        yIdx.emplace_back(y<0?y+_width:y);
+        yIdx.emplace_back(y<0?y+_height:y);
     }
     double sumX=0;
     double sumY=0;  
@@ -359,6 +363,26 @@ std::pair<double, double> imageRegistrator::getAngScale(std::vector<std::complex
 
     // convert from pixels to angle and scale
     double logbase = std::pow(0.55*_heightd,1.0/_widthd);
+    results.first *= 180/_heightd;
+    results.second = std::pow(logbase,results.second);
+
+    return results;
+}
+
+void imageRegistrator::append(std::vector<std::complex<double>> &img)
+{
+    queue.push(img);
+    logPolarTransform(queue.back(),queue.back());
+}
+
+std::pair<double,double> imageRegistrator::getAngScale()
+{
+    std::pair<double,double> results;
+    phaseCorrelation(queue.front(),queue.back(),results);
+    // phaseCorrelation(img1,img2,results);
+
+    // convert from pixels to angle and scale
+    // double logbase = std::pow(0.55*_heightd,1.0/_widthd);
     results.first *= 180/_heightd;
     results.second = std::pow(logbase,results.second);
 

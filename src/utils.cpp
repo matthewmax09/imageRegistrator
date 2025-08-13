@@ -130,3 +130,7 @@ std::vector<double> hanning_window(int window_size)
     return window;
 }
 
+/* 
+	https://stackoverflow.com/questions/56334492/c-create-fixed-size-queue
+*/
+
