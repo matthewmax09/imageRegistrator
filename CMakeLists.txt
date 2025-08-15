@@ -10,7 +10,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(OpenMP REQUIRED)
 find_package(OpenCV REQUIRED)
 # Adopt https://github.com/egpbos/findFFTW to simplify CMakeLists
-find_package(FFTW REQUIRED COMPONENTS DOUBLE_OPENMP_LIB)
+find_package(FFTW REQUIRED COMPONENTS FLOAT_OPENMP_LIB)
 
 file(GLOB SOURCES src/*.cpp)
 add_subdirectory(thirdparty/glog)

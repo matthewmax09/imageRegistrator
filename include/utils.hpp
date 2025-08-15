@@ -23,7 +23,7 @@ T percentile(std::vector<T> vectorIn, int percent)
 
 // https://gist.github.com/lorenzoriano/5414671
 template <typename T>
-std::vector<T> linspace(double start, double end, double num, bool endpoint=true)
+std::vector<T> linspace(float start, float end, float num, bool endpoint=true)
 {
     CHECK_NE(num,0);
     std::vector<T> linspaced;
@@ -33,7 +33,7 @@ std::vector<T> linspace(double start, double end, double num, bool endpoint=true
     
     if (num == 1) {return linspaced;}
     if (endpoint) --num;
-    double delta = (end - start)/num;
+    float delta = (end - start)/num;
     for (int i = 1; i < num; i++)
     {
         linspaced.push_back(static_cast<T>(start + delta*i));
@@ -46,12 +46,12 @@ std::vector<T> linspace(double start, double end, double num, bool endpoint=true
 }
 
 // Copied and modified from cv::getGaussianKernelBitExact
-double getGaussianKernel(std::vector<double>& result, int n, double sigma);
+float getGaussianKernel(std::vector<float>& result, int n, float sigma);
 
-std::vector<double> hanning_window(int window_size);
+std::vector<float> hanning_window(int window_size);
 
 template<typename T>
-T inline roundCast(double a){
+T inline roundCast(float a){
     return static_cast<T>(std::round(a));
 }
 

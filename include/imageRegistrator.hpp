@@ -7,41 +7,46 @@ private:
     const int _height;
     const int _width;
     const int _size;
-    const double _heightd;
-    const double _widthd;
-    const double logbase;
-    const std::vector<std::pair<double,double>> map;
-    const std::vector<double> filter;
-    const std::vector<std::pair<int,double>> mask;
-    FixedQueue<std::vector<std::complex<double>>, 2> queue;
+    const float _heightd;
+    const float _widthd;
+    const float logbase;
+    const std::vector<std::pair<float,float>> map;
+    const std::vector<float> filter;
+    const std::vector<std::pair<int,float>> mask;
+    FixedQueue<std::vector<std::complex<float>>, 2> queue;
 
-    std::vector<std::pair<double,double>> getPolarMap();
-    std::vector<std::pair<int,double>> apodizeMask();
-    std::vector<double> gaussianHPF (double sigma);
-    std::vector<double> mapCoordinates(std::vector<double> &img);
-    void mapCoordinates(std::vector<double> &img, std::vector<double> &output);
-    void mapCoordinates(std::vector<double> &img, std::vector<std::complex<double>> &output);
-    void centerOfMass(const std::vector<std::complex<double>> &img, int m, std::pair<double, double> &com);
+    std::vector<std::pair<float,float>> getPolarMap();
+    std::vector<std::pair<int,float>> apodizeMask();
+    std::vector<float> gaussianHPF (float sigma);
+    std::vector<float> mapCoordinates(std::vector<float> &img);
+    void mapCoordinates(std::vector<float> &img, std::vector<float> &output);
+    void mapCoordinates(std::vector<float> &img, std::vector<std::complex<float>> &output);
+    void centerOfMass(const std::vector<std::complex<float>> &img, int m, std::pair<float, float> &com);
 
-    fftw_plan fft_forward;
-    fftw_plan fft_backward;
+    fftwf_plan fft_forward;
+    fftwf_plan fft_backward;
 
 public:
     imageRegistrator(int height, int width);
     ~imageRegistrator();
 
-    double getHeight();
-    double getWidth();
+    float getHeight();
+    float getWidth();
 
 
-    void fftShift(std::vector<std::complex<double>> &img, const bool forward = true);
+    void fftShift(std::vector<std::complex<float>> &img, const bool forward = true);
     template <typename T>
     void apodize (std::vector<T> &img);
-    void phaseCorrelation(std::vector<std::complex<double>> img1,std::vector<std::complex<double>> img2,std::pair<double,double> &results);
+    void phaseCorrelation(std::vector<std::complex<float>> img1,std::vector<std::complex<float>> img2,std::pair<float,float> &results);
 
     template <typename T>
-    void logPolarTransform(std::vector<std::complex<double>> &img, std::vector<T> &output);
-    std::pair<double, double> getAngScale(std::vector<std::complex<double>> &img1,std::vector<std::complex<double>> &img2);
-    void append(std::vector<std::complex<double>> &img);
-    std::pair<double,double> getAngScale();
+    void logPolarTransform(std::vector<std::complex<float>> &img, std::vector<T> &output);
+    std::pair<float, float> getAngScale(std::vector<std::complex<float>> &img1,std::vector<std::complex<float>> &img2);
+
+    std::vector<float> total_t;
+    std::vector<float> total_t1;
+    std::chrono::duration<float, std::milli> ms_float;
+    
+    void append(std::vector<std::complex<float>> &img);
+    std::pair<float,float> getAngScale();
 };
